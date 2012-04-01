@@ -49,9 +49,8 @@ that are only managed on this host will also be removed from the index.
 
     curl -X"DELETE" -sv "http://localhost:8141/$(hostname --fqdn)"
 
-`GET /?resource=#{reference}`  
-`GET /?parameters=1&resource=#{reference}`  
--------------------------------------------
+`GET /?resource=#{reference}` or `GET /?parameters=1&resource=#{reference}`
+---------------------------------------------------------------------------
 
 In the first form, respond with the list of hostnames that manage this
 resource or 404 if no hosts manage this resource.
