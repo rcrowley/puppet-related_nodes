@@ -39,7 +39,7 @@ class RelatedNodes < Logger::Application
     return [400, HEADERS, ["---"]] unless hostname =~ /^[0-9a-z.-]+$/
 
     # Update the inverted index.
-    catalog_references(YAML.load_file("catalogs/#{hostname}")) do |reference|
+    catalog_references(File.open("catalogs/#{hostname}")) do |reference|
       unindex hostname, reference
     end
 
@@ -76,7 +76,7 @@ class RelatedNodes < Logger::Application
     if query["parameters"][0]
       hash = {}
       hostnames.each do |hostname|
-        catalog_resources(YAML.load_file("catalogs/#{hostname}")) do |r, p|
+        catalog_resources(File.open("catalogs/#{hostname}")) do |r, p|
           if reference == r
             hash["#{title}:#{hostname}"] = p
             break
@@ -105,14 +105,13 @@ class RelatedNodes < Logger::Application
 
     # Recall the previously-uploaded catalog.
     references0 = begin
-      catalog_references(YAML.load_file("catalogs/#{hostname}"))
+      catalog_references(File.open("catalogs/#{hostname}"))
     rescue Errno::ENOENT, NoMethodError
       []
     end
 
     # Update the inverted index.
-    yaml = YAML.load(env["rack.input"])
-    references1 = catalog_references(yaml)
+    references1 = catalog_references(env["rack.input"])
     (references1 - references0).each do |reference|
       index hostname, reference
     end
@@ -135,14 +134,14 @@ private
   # in this catalog.
   #
   # Otherwise, return a hash of resource references to their parameter hashes.
-  def catalog_resources(yaml)
+  def catalog_resources(io)
     if block_given?
-      yaml.ivars["resource_table"].each_value do |resource|
+      YAML.load(io).ivars["resource_table"].each_value do |resource|
         yield resource.ivars["reference"], resource.ivars["parameters"]
       end
     else
       hash = {}
-      catalog_resources(yaml, &hash.method(:[]=))
+      catalog_resources(io, &hash.method(:[]=))
       hash
     end
   end
@@ -150,14 +149,14 @@ private
   # If a block is given, yield each resource reference in this catalog.
   #
   # Otherwise, return an array of resource references.
-  def catalog_references(yaml)
+  def catalog_references(io)
     if block_given?
-      yaml.ivars["resource_table"].each_value do |resource|
+      YAML.load(io).ivars["resource_table"].each_value do |resource|
         yield resource.ivars["reference"]
       end
     else
       array = []
-      catalog_references(yaml, &array.method(:<<))
+      catalog_references(io, &array.method(:<<))
       array
     end
   end
