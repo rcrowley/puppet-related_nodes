@@ -2,6 +2,7 @@
 
 require 'cgi'
 require 'net/http'
+require 'net/https'
 require 'puppet'
 require 'puppet/parser/functions'
 require 'uri'
