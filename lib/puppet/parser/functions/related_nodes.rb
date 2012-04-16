@@ -34,6 +34,9 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     "#{CGI.escape(name.to_s)}=#{CGI.escape(value.to_s)}"
   end.join("&")
   response = http.get("/?#{query_string}")
-  YAML.load(response.body)
+  if 200 == response.code.to_i then YAML.load(response.body)
+  elsif args[1] then {}
+  else []
+  end
 
 end
