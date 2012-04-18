@@ -100,7 +100,7 @@ class RelatedNodes < Logger::Application
             catalog_resources f do |r, p|
               if r =~ RE_REFERENCE && reference == $1
                 p.delete :name
-                hash[$2.end_with?(":") ? "#{$2}#{hostname}" : title] = p
+                hash[$2.end_with?(":") ? "#{$2}#{hostname}" : $2] = p
               end
             end
           end
