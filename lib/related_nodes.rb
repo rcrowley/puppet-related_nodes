@@ -4,6 +4,7 @@ require 'cgi'
 require 'digest/sha1'
 require 'fileutils'
 require 'logger'
+require 'set'
 require 'yaml'
 
 class RelatedNodes < Logger::Application
@@ -13,6 +14,9 @@ class RelatedNodes < Logger::Application
   # The RelatedNodes service speaks YAML.  This is only preferable to JSON
   # because Ruby speaks YAML but not JSON natively.
   HEADERS = {"Content-Type" => "application/x-yaml"}
+
+  RE_REFERENCE = /^([A-Z][0-9a-z_-]*(?:::[A-Z][0-9a-z_-]+)*)\[([^\]]+)\]$/
+  RE_TYPE = /^([A-Z][0-9a-z_-]*(?:::[A-Z][0-9a-z_-]+)*)$/
 
   # Initialize the RelatedNodes service directory structure.
   def initialize(dirname)
@@ -39,8 +43,14 @@ class RelatedNodes < Logger::Application
     return [400, HEADERS, ["---"]] unless hostname =~ /^[0-9a-z.-]+$/
 
     # Update the inverted index.
-    catalog_references(File.open("catalogs/#{hostname}")) do |reference|
-      unindex hostname, reference
+    File.open "catalogs/#{hostname}" do |f|
+      catalog_references f do |reference|
+        unindex hostname, reference
+      end
+      f.rewind
+      catalog_types f do |type|
+        unindex hostname, type
+      end
     end
 
     # No need to save the catalog for later, anymore.
@@ -57,10 +67,11 @@ class RelatedNodes < Logger::Application
   def get(env)
     query = CGI.parse(env["QUERY_STRING"]) # FIXME Sanitize.
     reference = query["resource"][0]
-    if reference !~ /^[A-Z][0-9a-z_-]*(?:::[A-Z][0-9a-z_-]+)*\[([^\]]+)\]$/
-      return [400, HEADERS, ["---"]]
+    title = case reference
+    when RE_REFERENCE then $1
+    when RE_TYPE then nil
+    else return [400, HEADERS, ["---"]]
     end
-    title = $1
 
     # Get the list of hostnames that manage this resource.
     sha = Digest::SHA1.hexdigest(reference)
@@ -76,10 +87,20 @@ class RelatedNodes < Logger::Application
     if query["parameters"][0]
       hash = {}
       hostnames.each do |hostname|
-        catalog_resources(File.open("catalogs/#{hostname}")) do |r, p|
-          if reference == r
-            hash["#{title}:#{hostname}"] = p
-            break
+        File.open("catalogs/#{hostname}") do |f|
+          if title
+            catalog_resources f do |r, p|
+              if reference == r
+                hash["#{title}:#{hostname}"] = p
+                break
+              end
+            end
+          else
+            catalog_resources f do |r, p|
+              if r =~ RE_REFERENCE && reference == $1
+                hash["#{$1}[#{$2}:#{hostname}]"] = p
+              end
+            end
           end
         end
       end
@@ -109,6 +130,11 @@ class RelatedNodes < Logger::Application
     rescue Errno::ENOENT, NoMethodError
       []
     end
+    types0 = begin
+      catalog_types(File.open("catalogs/#{hostname}"))
+    rescue Errno::ENOENT, NoMethodError
+      []
+    end
 
     # Update the inverted index.
     references1 = catalog_references(env["rack.input"])
@@ -117,6 +143,14 @@ class RelatedNodes < Logger::Application
     end
     (references0 - references1).each do |reference|
       unindex hostname, reference
+    end
+    env["rack.input"].rewind
+    types1 = catalog_types(env["rack.input"])
+    (types1 - types0).each do |type|
+      index hostname, type
+    end
+    (types0 - types1).each do |type|
+      unindex hostname, type
     end
 
     # Save this catalog for later.
@@ -141,7 +175,7 @@ private
       end
     else
       hash = {}
-      catalog_resources(io, &hash.method(:[]=))
+      catalog_resources io, &hash.method(:[]=)
       hash
     end
   end
@@ -156,8 +190,25 @@ private
       end
     else
       array = []
-      catalog_references(io, &array.method(:<<))
+      catalog_references io, &array.method(:<<)
       array
+    end
+  end
+
+  # If a block is given, yield each distinct type in this catalog.
+  #
+  # Otherwise, return an array of distinct type names.
+  def catalog_types(io)
+    set = Set.new
+    YAML.load(io).ivars["resource_table"].each_value do |resource|
+      set.add resource.ivars["type"]
+    end
+    if block_given?
+      set.each do |type|
+        yield type
+      end
+    else
+      set.to_a
     end
   end
 
