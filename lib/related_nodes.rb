@@ -225,8 +225,8 @@ private
     sha = Digest::SHA1.hexdigest(reference)
     log INFO, "rm -f index/#{sha[0..1]}/#{sha[2..-1]}/#{hostname}"
     rm_f "index/#{sha[0..1]}/#{sha[2..-1]}/#{hostname}"
-    rmdir "index/#{sha[0..1]}/#{sha[2..-1]}"
-    rmdir "index/#{sha[0..1]}"
+    rmdir "index/#{sha[0..1]}/#{sha[2..-1]}" rescue Errno::ENOENT
+    rmdir "index/#{sha[0..1]}" rescue Errno::ENOENT
   rescue Errno::ENOTEMPTY
   end
 
