@@ -23,6 +23,11 @@ Run the RelatedNodes server:
 
     RUBYLIB="lib" rackup -p"8141"
 
+Push Puppet catalogs to it after Puppet runs:
+
+    curl -T"/var/lib/puppet/client_yaml/$(hostname --fqdn)/catalog.yaml" \
+         -X"PUT" -sv "http://localhost:8141/$(hostname --fqdn)"
+
 Ask it questions from Puppet:
 
     $hostnames = related_nodes(Package["nginx"])
@@ -40,6 +45,9 @@ suitable for use with the `create_resources` function:
 
     create_resources "nagios_service",
         related_nodes(Sentinel::Nagios_service["api"], true)
+
+If a resource's title ends in `:`, the hostname that created it will be
+appended to the title returned for use with `create_resources`.
 
 `DELETE /#{hostname}`
 ---------------------
