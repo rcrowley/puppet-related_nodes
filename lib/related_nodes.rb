@@ -91,6 +91,7 @@ class RelatedNodes < Logger::Application
           if title
             catalog_resources f do |r, p|
               if reference == r
+                p.delete :name
                 hash["#{title}:#{hostname}"] = p
                 break
               end
@@ -98,6 +99,7 @@ class RelatedNodes < Logger::Application
           else
             catalog_resources f do |r, p|
               if r =~ RE_REFERENCE && reference == $1
+                p.delete :name
                 hash["#{$1}[#{$2}:#{hostname}]"] = p
               end
             end
