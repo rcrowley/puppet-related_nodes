@@ -25,9 +25,6 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE # FIXME
   end
-  if uri.userinfo
-    http.basic_auth *uri.userinfo.split(":", 2)
-  end
 
   # Return the list of hostnames that manage this resource, which may be empty,
   # or the resources themselves if the second argument is true.
@@ -36,7 +33,11 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
   query_string = query.map do |name, value|
     "#{CGI.escape(name.to_s)}=#{CGI.escape(value.to_s)}"
   end.join("&")
-  response = http.get("/?#{query_string}")
+  request = Net::HTTP::Get.new("/?#{query_string}")
+  if uri.userinfo
+    request.basic_auth *uri.userinfo.split(":", 2)
+  end
+  response = http.request(request)
   if 200 == response.code.to_i then YAML.load(response.body)
   elsif args[1] then {}
   else []
