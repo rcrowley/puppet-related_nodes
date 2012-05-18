@@ -25,6 +25,9 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE # FIXME
   end
+  if uri.userinfo
+    http.basic_auth *uri.userinfo.split(":", 2)
+  end
 
   # Return the list of hostnames that manage this resource, which may be empty,
   # or the resources themselves if the second argument is true.
