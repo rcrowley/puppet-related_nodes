@@ -68,7 +68,7 @@ class RelatedNodes < Logger::Application
     query = CGI.parse(env["QUERY_STRING"]) # FIXME Sanitize.
     reference = query["resource"][0]
     title = case reference
-    when RE_REFERENCE then $1
+    when RE_REFERENCE then $2
     when RE_TYPE then nil
     else return [400, HEADERS, ["---"]]
     end
