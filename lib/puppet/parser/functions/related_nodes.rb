@@ -43,4 +43,6 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
   else []
   end
 
+rescue Errno::ECONNREFUSED
+  []
 end
