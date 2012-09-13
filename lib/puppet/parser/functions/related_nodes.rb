@@ -16,7 +16,7 @@ fail_fast = false
 # or the resources themselves if the second argument is true.
 Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
   #return cache[args[0]][args[1]] if cache[args[0]][args[1]]
-  #return args[1] ? {} : [] if fail_fast
+  return args[1] ? {} : [] if fail_fast
   begin
 
     # The RelatedNodes service is on the Puppet master at port 8141 over SSL
@@ -47,10 +47,8 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     response = http.request(request)
     cache[args[0]][args[1]] = if 200 == response.code.to_i
       YAML.load(response.body)
-    elsif args[1]
-      {}
     else
-      []
+      args[1] ? {} : []
     end
 
   rescue Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT => e
@@ -58,6 +56,6 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     fail_fast = true
   rescue => e
     Puppet.err e
-    cache[args[0]][args[1]] = []
+    cache[args[0]][args[1]] = args[1] ? {} : []
   end
 end
