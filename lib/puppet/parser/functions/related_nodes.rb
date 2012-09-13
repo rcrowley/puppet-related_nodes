@@ -9,13 +9,13 @@ require 'uri'
 require 'yaml'
 
 cache = {}
-cache.default = {}
 fail_fast = false
 
 # Return the list of hostnames that manage this resource, which may be empty,
 # or the resources themselves if the second argument is true.
 Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
-  #return cache[args[0]][args[1]] if cache[args[0]][args[1]]
+  cache_key = args.map{ |arg| arg.to_s }.inspect
+  return cache[cache_key] if cache[cache_key] # FIXME
   return args[1] ? {} : [] if fail_fast
   begin
 
@@ -45,7 +45,7 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
       request.basic_auth *uri.userinfo.split(":", 2)
     end
     response = http.request(request)
-    cache[args[0]][args[1]] = if 200 == response.code.to_i
+    cache[cache_key] = if 200 == response.code.to_i
       YAML.load(response.body)
     else
       args[1] ? {} : []
@@ -56,6 +56,6 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
     fail_fast = true
   rescue => e
     Puppet.err e
-    cache[args[0]][args[1]] = args[1] ? {} : []
+    cache[cache_key] = args[1] ? {} : []
   end
 end
