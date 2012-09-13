@@ -15,8 +15,8 @@ fail_fast = false
 # Return the list of hostnames that manage this resource, which may be empty,
 # or the resources themselves if the second argument is true.
 Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
-  return cache[args[0]][args[1]] if cache[args[0]][args[1]]
-  return args[1] ? {} : [] if fail_fast
+  #return cache[args[0]][args[1]] if cache[args[0]][args[1]]
+  #return args[1] ? {} : [] if fail_fast
   begin
 
     # The RelatedNodes service is on the Puppet master at port 8141 over SSL
