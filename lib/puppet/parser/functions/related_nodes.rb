@@ -8,9 +8,15 @@ require 'puppet/parser/functions'
 require 'uri'
 require 'yaml'
 
+cache = {}
+cache.default = {}
+fail_fast = false
+
 # Return the list of hostnames that manage this resource, which may be empty,
 # or the resources themselves if the second argument is true.
 Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
+  return cache[args[0]][args[1]] if cache[args[0]][args[1]]
+  return args[1] ? {} : [] if fail_fast
   begin
 
     # The RelatedNodes service is on the Puppet master at port 8141 over SSL
@@ -39,13 +45,19 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
       request.basic_auth *uri.userinfo.split(":", 2)
     end
     response = http.request(request)
-    if 200 == response.code.to_i then YAML.load(response.body)
-    elsif args[1] then {}
-    else []
+    cache[args[0]][args[1]] = if 200 == response.code.to_i
+      YAML.load(response.body)
+    elsif args[1]
+      {}
+    else
+      []
     end
 
+  rescue Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT => e
+    Puppet.err e
+    fail_fast = true
   rescue => e
     Puppet.err e
-    []
+    cache[args[0]][args[1]] = []
   end
 end
