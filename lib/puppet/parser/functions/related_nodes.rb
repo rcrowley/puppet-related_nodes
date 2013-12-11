@@ -54,6 +54,7 @@ Puppet::Parser::Functions.newfunction :related_nodes, :type => :rvalue do |args|
   rescue Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT => e
     Puppet.err e
     fail_fast = true
+    cache[cache_key] = args[1] ? {} : []
   rescue => e
     Puppet.err e
     cache[cache_key] = args[1] ? {} : []
