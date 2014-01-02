@@ -189,7 +189,11 @@ private
   def catalog_references(io)
     if block_given?
       YAML.load(io).ivars["resource_table"].each_value do |resource|
-        yield resource.ivars["reference"]
+        if resource.ivars["reference"]
+          yield resource.ivars["reference"]
+        else
+          yield "#{resource.ivars["type"]}[#{resource.ivars["title"]}]"
+        end
       end
     else
       array = []
