@@ -174,7 +174,11 @@ private
   def catalog_resources(io)
     if block_given?
       YAML.load(io).ivars["resource_table"].each_value do |resource|
-        yield resource.ivars["reference"], resource.ivars["parameters"]
+        if resource.ivars["reference"]
+          yield resource.ivars["reference"]
+        else
+          yield "#{resource.ivars["type"]}[#{resource.ivars["title"]}]"
+        end
       end
     else
       hash = {}
