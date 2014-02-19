@@ -175,9 +175,9 @@ private
     if block_given?
       YAML.load(io).ivars["resource_table"].each_value do |resource|
         if resource.ivars["reference"]
-          yield resource.ivars["reference"]
+          yield resource.ivars["reference"], resource.ivars["parameters"]
         else
-          yield "#{resource.ivars["type"]}[#{resource.ivars["title"]}]"
+          yield "#{resource.ivars["type"]}[#{resource.ivars["title"]}]", resource.ivars["parameters"]
         end
       end
     else
